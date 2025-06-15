@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import API from '../api';
+import API from './api';
 import { Link } from 'react-router-dom';
 
 function HomePage() {
@@ -10,21 +10,39 @@ function HomePage() {
   const [selectedBrand, setSelectedBrand] = useState('');
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
+        console.log('Отправка запросов...');
         const [productsRes, categoriesRes, brandsRes] = await Promise.all([
-          API.get('/products'),
-          API.get('/products/categories'),
-          API.get('/products/brands'),
+          API.get('/products').catch(error => {
+            console.error('Ошибка /api/products:', error.response || error);
+            throw new Error('Ошибка загрузки продуктов');
+          }),
+          API.get('/products/categories').catch(error => {
+            console.error('Ошибка /api/products/categories:', error.response || error);
+            throw new Error('Ошибка загрузки категорий');
+          }),
+          API.get('/products/brands').catch(error => {
+            console.error('Ошибка /api/products/brands:', error.response || error);
+            throw new Error('Ошибка загрузки брендов');
+          }),
         ]);
+        console.log('Продукты:', productsRes.data);
+        console.log('Категории:', categoriesRes.data);
+        console.log('Бренды:', brandsRes.data);
         setProducts(productsRes.data);
         setCategories(categoriesRes.data);
         setBrands(brandsRes.data);
+        setError('');
       } catch (err) {
         console.error('Ошибка загрузки данных:', err);
-        setError('Не удалось загрузить данные');
+        setError(err.message || 'Не удалось загрузить данные');
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
@@ -38,6 +56,7 @@ function HomePage() {
     );
   });
 
+  if (loading) return <p>Загрузка...</p>;
   if (error) return <p className="text-danger">{error}</p>;
 
   return (
